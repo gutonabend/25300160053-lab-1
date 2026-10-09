@@ -368,17 +368,19 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
- int x4 = x << 2;                 
-  int sign = x >> 31;              
-  int high = x >> 29;              
-  int x4_overflow = (high != 0) & (high != -1);  
-  int y = x4 + x;                
+  int x4 = x << 2;                         
+  int high = x >> 29;                      
+  int high_is_0 = !high;
+  int high_is_m1 = !~high;
+  int x4_overflow = !(high_is_0 | high_is_m1); 
+  int y = x4 + x;                        
   int add_overflow = ((x4 ^ y) & (x ^ y)) >> 31; 
   int overflow = x4_overflow | (add_overflow & 1); 
-  int max = ~(1 << 31);            
-  int min = 1 << 31;               
-  int sat = (sign & min) | (~sign & max); 
-  int mask = ~overflow + 1;        
+  int sign = x >> 31;                      
+  int max = ~(1 << 31);                    
+  int min = 1 << 31;                        
+  int sat = (sign & min) | (~sign & max);   
+  int mask = ~overflow + 1;               
   return (y & ~mask) | (sat & mask);
 }
 
@@ -400,16 +402,16 @@ int classifyAdd3(int x, int y, int z) {
   int H = c1 + c2 + sum_sign;
   int s2_sign = s2 >> 31;
   int h_ge_1   = !(H >> 31) & !!H;          
-  int h_is_0   = !H;                        
-  int h_is_m1  = !(H ^ -1);                
-  int h_is_m2  = !(H ^ -2);                 
-  int h_is_m3  = !(H ^ -3);                 
+  int h_is_0   = !H;                      
+  int h_is_m1  = !(H ^ ~0);                
+  int h_is_m2  = !(H ^ ~1);                
+  int h_is_m3  = !(H ^ ~2);                
   int h_le_m2  = h_is_m2 | h_is_m3;         
-  int s2_neg    = s2_sign & 1;             
+  int s2_neg    = s2_sign & 1;            
   int s2_nonneg = !s2_neg;                  
   int cond1 = h_ge_1 | (h_is_0 & s2_neg);
   int cond_m1 = h_le_m2 | (h_is_m1 & s2_nonneg);
-  return cond1 - cond_m1;
+  return cond1 + ~cond_m1 + 1;
 }
 
 // P15
