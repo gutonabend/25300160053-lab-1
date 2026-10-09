@@ -368,18 +368,18 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  int x5 = (x << 2) + x;
-  int c = (0x19 << 24) | (0x99 << 16) | (0x99 << 8) | 0x99;
-  int x_sign = x >> 31;
-  int x_is_positive = ~x_sign & 1;
-  int x_positive_overflow = ~((x + ~c) >> 31) & 1;
-  int x_negative_overflow = ((x + c) >> 31) & 1;
-  int x_overflow = (x_is_positive & x_positive_overflow) | (~x_is_positive & x_negative_overflow);
-  int max = (1 << 31) + ~0;
-  int min = 1 << 31;
-  int x_overflow_value = (~x_sign & max) | (x_sign & min);
-  int mask = ~x_overflow + 1;
-  return (x5 & ~mask) | (mask & x_overflow_value);
+ int x4 = x << 2;                 
+  int sign = x >> 31;              
+  int high = x >> 29;              
+  int x4_overflow = (high != 0) & (high != -1);  
+  int y = x4 + x;                
+  int add_overflow = ((x4 ^ y) & (x ^ y)) >> 31; 
+  int overflow = x4_overflow | (add_overflow & 1); 
+  int max = ~(1 << 31);            
+  int min = 1 << 31;               
+  int sat = (sign & min) | (~sign & max); 
+  int mask = ~overflow + 1;        
+  return (y & ~mask) | (sat & mask);
 }
 
 // P14
@@ -392,18 +392,24 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  int x5 = (x << 2) + x;
-  int c = (0x19 << 24) | (0x99 << 16) | (0x99 << 8) | 0x99;
-  int x_sign = x >> 31;
-  int x_is_positive = ~x_sign & 1;
-  int x_positive_overflow = ~((x + ~c) >> 31) & 1;
-  int x_negative_overflow = ((x + c) >> 31) & 1;
-  int x_overflow = (x_is_positive & x_positive_overflow) | (!x_is_positive & x_negative_overflow);
-  int max = (1 << 31) + ~0;
-  int min = 1 << 31;
-  int x_overflow_value = (~x_sign & max) | (x_sign & min);
-  int mask = ~x_overflow + 1;
-  return (x5 & ~mask) | (mask & x_overflow_value);
+  int s1 = x + y;
+  int c1 = ((x & y) | ((x | y) & ~s1)) >> 31 & 1;
+  int s2 = s1 + z;
+  int c2 = ((s1 & z) | ((s1 | z) & ~s2)) >> 31 & 1;
+  int sum_sign = (x >> 31) + (y >> 31) + (z >> 31);
+  int H = c1 + c2 + sum_sign;
+  int s2_sign = s2 >> 31;
+  int h_ge_1   = !(H >> 31) & !!H;          
+  int h_is_0   = !H;                        
+  int h_is_m1  = !(H ^ -1);                
+  int h_is_m2  = !(H ^ -2);                 
+  int h_is_m3  = !(H ^ -3);                 
+  int h_le_m2  = h_is_m2 | h_is_m3;         
+  int s2_neg    = s2_sign & 1;             
+  int s2_nonneg = !s2_neg;                  
+  int cond1 = h_ge_1 | (h_is_0 & s2_neg);
+  int cond_m1 = h_le_m2 | (h_is_m1 & s2_nonneg);
+  return cond1 - cond_m1;
 }
 
 // P15
